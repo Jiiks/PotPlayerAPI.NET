@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace PotApi;
 
-#if !USE_FORMS
+#if USE_FORMS
 public struct COPYDATASTRUCT {
     public IntPtr dwData;
     public int cbData;
