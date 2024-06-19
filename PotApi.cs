@@ -160,7 +160,7 @@ public class PotApi : IDisposable {
     private Task<T> Tasker<T>(Func<T> func) {
         return Task.FromResult(func());
     }
-    public string GetVapurSynthScript() {
+    public string GetVapourSynthScript() {
         _response = string.Empty;
         WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VAPOURSYNTH_SCRIPT, ProcReceiverHwnd);
         return Tasker(() => {
