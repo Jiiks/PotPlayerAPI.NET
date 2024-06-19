@@ -26,7 +26,7 @@ public class PotApi : IDisposable {
         var ct = _cts.Token;
 
         Task.Factory.StartNew(async () => {
-            while(true) {
+            while (true) {
                 await Task.Delay(500); // Time is not very accurate so have to have some delay.
                 if (ct.IsCancellationRequested) break;
                 var cTime = GetCurrentTime();
@@ -37,7 +37,7 @@ public class PotApi : IDisposable {
                 if (state != playbackEventargs.State) {
                     playbackEventargs.State = state;
                     PlaybackStateChanged?.Invoke(this, playbackEventargs);
-                } else if(cTime != currentTime) {
+                } else if (cTime != currentTime) {
                     PlaybackStateChanged?.Invoke(this, playbackEventargs);
                 }
 
@@ -54,6 +54,8 @@ public class PotApi : IDisposable {
     public static class WinApi {
         [DllImport("user32", CharSet = CharSet.Ansi, EntryPoint = "SendMessageA")]
         public static extern nint SendMessage(nint hWnd, uint dwMsg, nuint wParam, nint lParam = 0);
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
     }
 
     public static class Constants {
@@ -270,7 +272,7 @@ public class PotApi : IDisposable {
                 try {
                     var data = Marshal.PtrToStructure<COPYDATASTRUCT>(m.LParam);
                     _response = data.lpData;
-                } catch(Exception ex) {
+                } catch (Exception ex) {
                     _response = ex.Message;
                 }
                 break;
@@ -288,6 +290,23 @@ public class PotApi : IDisposable {
         None,
         Simple,
         All
+    }
+
+    public string? GetProcessPath(IntPtr hwnd) {
+        WinApi.GetWindowThreadProcessId(hwnd, out uint pid);
+        Process proc = Process.GetProcessById((int)pid);
+        return proc.MainModule?.FileName;
+    }
+
+    public void PlayFile(string filePath, bool current = true) {
+        var procPath = GetProcessPath(Hwnd);
+        if(procPath == null) return;
+        Process.Start($""""""{procPath}" "{filePath}" {(current ? "/current" : "/new")}"""""");
+    }
+    public void AddFile(string filePath) {
+        var procPath = GetProcessPath(Hwnd);
+        if (procPath == null) return;
+        Process.Start($""""""{procPath}" "{filePath}" /add"""""");
     }
 
 }
