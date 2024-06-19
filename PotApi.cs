@@ -154,7 +154,7 @@ public class PotApi : IDisposable {
 
     public nint GetVideoWidth() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_WIDTH);
     public nint GetVideoHeight() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_HEIGHT);
-    public nint GetVideoFps() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_FPS) * 1000;
+    public nint GetVideoFps() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_FPS);
 
     private string _response = string.Empty;
     private Task<T> Tasker<T>(Func<T> func) {
