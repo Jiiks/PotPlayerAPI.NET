@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 
 namespace PotApi;
-public class PotApi {
+public class PotApi : IDisposable {
 
     public static class WinApi {
         [DllImport("user32", CharSet = CharSet.Ansi, EntryPoint = "SendMessageA")]
@@ -217,11 +217,15 @@ public class PotApi {
         }
     }
 
+    public void Dispose() {
+        _procReceiver.Close();
+        _procReceiver.Dispose();
+    }
+
     public enum OsdState {
         None,
         Simple,
         All
     }
-
 
 }
