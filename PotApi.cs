@@ -6,6 +6,51 @@ using System.Runtime.InteropServices;
 namespace PotApi;
 public class PotApi : IDisposable {
 
+    public EventHandler<PlaybackEventArgs> PlaybackStateChanged;
+    public class PlaybackEventArgs(PlayBackState state, nint time) : EventArgs {
+        public PlayBackState State { get; set; } = state;
+        public nint Time { get; set; } = time;
+    }
+    public enum PlayBackState {
+        Play,
+        Pause,
+        Stop
+    }
+
+    private CancellationTokenSource _cts;
+
+    public void StartListener() {
+        var currentTime = GetCurrentTime();
+        var playbackEventargs = new PlaybackEventArgs(PlayBackState.Stop, currentTime);
+        _cts = new CancellationTokenSource();
+        var ct = _cts.Token;
+
+        Task.Factory.StartNew(async () => {
+            while(true) {
+                await Task.Delay(500); // Time is not very accurate so have to have some delay.
+                if (ct.IsCancellationRequested) break;
+                var cTime = GetCurrentTime();
+
+                playbackEventargs.Time = cTime;
+
+                if(cTime != currentTime) {
+                    if (playbackEventargs.State == PlayBackState.Pause || playbackEventargs.State == PlayBackState.Stop) playbackEventargs.State = PlayBackState.Play;
+                    PlaybackStateChanged?.Invoke(this, playbackEventargs);
+                } else if (playbackEventargs.State == PlayBackState.Play || playbackEventargs.State == PlayBackState.Stop) {
+                    playbackEventargs.State = PlayBackState.Pause;
+                    PlaybackStateChanged?.Invoke(this, playbackEventargs);
+                }
+
+                currentTime = cTime;
+            }
+        });
+    }
+
+    public void StopListener() {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+
     public static class WinApi {
         [DllImport("user32", CharSet = CharSet.Ansi, EntryPoint = "SendMessageA")]
         public static extern nint SendMessage(nint hWnd, uint dwMsg, nuint wParam, nint lParam = 0);
@@ -225,6 +270,8 @@ public class PotApi : IDisposable {
     }
 
     public void Dispose() {
+        _cts.Cancel();
+        _cts.Dispose();
         _procReceiver.Close();
         _procReceiver.Dispose();
     }
