@@ -176,43 +176,45 @@ public class PotApi : IDisposable {
     }
     private PotWndProcReceiver _procReceiver;
 
-    public void SetVolume(int volume) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_VOLUME, volume);
-    public nint GetVolume() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VOLUME);
-    public void Mute() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_MUTE, 1);
-    public void UnMute() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_MUTE, 0);
-    public bool Muted() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_MUTE) == 1;
+    public nint SendCommand(nuint wParam, nint lParam = 0) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, wParam, lParam);
 
-    public nint GetTotalTime() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_TOTAL_TIME);
-    public nint GetProgressTime() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_PROGRESS_TIME);
-    public nint GetCurrentTime() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_CURRENT_TIME);
-    public void SetCurrentTime(nint ms) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_CURRENT_TIME, ms);
-    public nint GetPlayStatus() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_PLAY_STATUS);
-    public void PlayPause() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_STATUS, 0);
-    public void Play() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_STATUS, 1);
-    public void Pause() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_STATUS, 2);
-    public void PlayPrevious() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_ORDER, 0);
-    public void PlayNext() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_ORDER, 1);
-    public void PlayClose() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_CLOSE);
+    public void SetVolume(int volume) => SendCommand(Constants.POT_SET_VOLUME, volume);
+    public nint GetVolume() => SendCommand(Constants.POT_GET_VOLUME);
+    public void Mute() => SendCommand(Constants.POT_SET_MUTE, 1);
+    public void UnMute() => SendCommand(Constants.POT_SET_MUTE, 0);
+    public bool Muted() => SendCommand(Constants.POT_GET_MUTE) == 1;
 
-    public void SetShift() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_VIRTUAL_KEY_SHIFT);
-    public void SetCtrl() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_VIRTUAL_KEY_CONTROL);
-    public void SetAlt() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_VIRTUAL_KEY_ALT);
-    public void SendKey(nint key) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SEND_VIRTUAL_KEY, key);
+    public nint GetTotalTime() => SendCommand(Constants.POT_GET_TOTAL_TIME);
+    public nint GetProgressTime() => SendCommand(Constants.POT_GET_PROGRESS_TIME);
+    public nint GetCurrentTime() => SendCommand(Constants.POT_GET_CURRENT_TIME);
+    public void SetCurrentTime(nint ms) => SendCommand(Constants.POT_SET_CURRENT_TIME, ms);
+    public nint GetPlayStatus() => SendCommand(Constants.POT_GET_PLAY_STATUS);
+    public void PlayPause() => SendCommand(Constants.POT_SET_PLAY_STATUS, 0);
+    public void Play() => SendCommand(Constants.POT_SET_PLAY_STATUS, 1);
+    public void Pause() => SendCommand(Constants.POT_SET_PLAY_STATUS, 2);
+    public void PlayPrevious() => SendCommand(Constants.POT_SET_PLAY_ORDER, 0);
+    public void PlayNext() => SendCommand(Constants.POT_SET_PLAY_ORDER, 1);
+    public void PlayClose() => SendCommand(Constants.POT_SET_PLAY_CLOSE);
 
-    public OsdState GetOsdState() => (OsdState)WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_OSD);
-    public void SetOsdState(OsdState state) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_OSD, (nint)state);
+    public void SetShift() => SendCommand(Constants.POT_VIRTUAL_KEY_SHIFT);
+    public void SetCtrl() => SendCommand(Constants.POT_VIRTUAL_KEY_CONTROL);
+    public void SetAlt() => SendCommand(Constants.POT_VIRTUAL_KEY_ALT);
+    public void SendKey(nint key) => SendCommand(Constants.POT_SEND_VIRTUAL_KEY, key);
 
-    public void GetAvisynthUse() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_AVISYNTH_USE);
-    public void EnableAvisynthUse() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_AVISYNTH_USE, 1);
-    public void DisableAvisynthUse() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_AVISYNTH_USE, 0);
+    public OsdState GetOsdState() => (OsdState)SendCommand(Constants.POT_GET_OSD);
+    public void SetOsdState(OsdState state) => SendCommand(Constants.POT_SET_OSD, (nint)state);
 
-    public void GetVapoursynthUse() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VAPOURSYNTH_USE);
-    public void EnableVapoursynthUse() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_VAPOURSYNTH_USE, 1);
-    public void DisableVapoursynthUse() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_VAPOURSYNTH_USE, 0);
+    public void GetAvisynthUse() => SendCommand(Constants.POT_GET_AVISYNTH_USE);
+    public void EnableAvisynthUse() => SendCommand(Constants.POT_SET_AVISYNTH_USE, 1);
+    public void DisableAvisynthUse() => SendCommand(Constants.POT_SET_AVISYNTH_USE, 0);
 
-    public nint GetVideoWidth() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_WIDTH);
-    public nint GetVideoHeight() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_HEIGHT);
-    public nint GetVideoFps() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_FPS);
+    public void GetVapoursynthUse() => SendCommand(Constants.POT_GET_VAPOURSYNTH_USE);
+    public void EnableVapoursynthUse() => SendCommand(Constants.POT_SET_VAPOURSYNTH_USE, 1);
+    public void DisableVapoursynthUse() => SendCommand(Constants.POT_SET_VAPOURSYNTH_USE, 0);
+
+    public nint GetVideoWidth() => SendCommand(Constants.POT_GET_VIDEO_WIDTH);
+    public nint GetVideoHeight() => SendCommand(Constants.POT_GET_VIDEO_HEIGHT);
+    public nint GetVideoFps() => SendCommand(Constants.POT_GET_VIDEO_FPS);
     public void ShowOpenFileDialog() => WinApi.SendMessage(Hwnd, Constants.POT_CMD, Constants.POT_OPEN_FILE);
 
     private string _response = string.Empty;
@@ -221,7 +223,7 @@ public class PotApi : IDisposable {
     }
     public string GetVapourSynthScript() {
         _response = string.Empty;
-        WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VAPOURSYNTH_SCRIPT, ProcReceiverHwnd);
+        SendCommand(Constants.POT_GET_VAPOURSYNTH_SCRIPT, ProcReceiverHwnd);
         return Tasker(() => {
             var timeOut = 1000;
             while (_response == string.Empty) {
@@ -235,7 +237,7 @@ public class PotApi : IDisposable {
 
     public string GetAviSynthScript() {
         _response = string.Empty;
-        WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_AVISYNTH_SCRIPT, ProcReceiverHwnd);
+        SendCommand(Constants.POT_GET_AVISYNTH_SCRIPT, ProcReceiverHwnd);
         return Tasker(() => {
             var timeOut = 1000;
             while (_response == string.Empty) {
@@ -249,7 +251,7 @@ public class PotApi : IDisposable {
 
     public string GetPlayingFileName() {
         _response = string.Empty;
-        WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_PLAYFILE_NAME, ProcReceiverHwnd);
+        SendCommand(Constants.POT_GET_PLAYFILE_NAME, ProcReceiverHwnd);
         return Tasker(() => {
             var timeOut = 1000;
             while (_response == string.Empty) {
