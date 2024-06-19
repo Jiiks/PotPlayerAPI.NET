@@ -12,16 +12,16 @@ public class PotApi : IDisposable {
         public nint Time { get; set; } = time;
     }
     public enum PlayBackState {
-        Play,
+        Stop,
         Pause,
-        Stop
+        Play
     }
 
     private CancellationTokenSource _cts;
 
     public void StartListener() {
         var currentTime = GetCurrentTime();
-        var playbackEventargs = new PlaybackEventArgs(PlayBackState.Stop, currentTime);
+        var playbackEventargs = new PlaybackEventArgs((PlayBackState)GetPlayStatus(), currentTime);
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
 
@@ -32,12 +32,12 @@ public class PotApi : IDisposable {
                 var cTime = GetCurrentTime();
 
                 playbackEventargs.Time = cTime;
+                var state = (PlayBackState)GetPlayStatus();
 
-                if(cTime != currentTime) {
-                    if (playbackEventargs.State == PlayBackState.Pause || playbackEventargs.State == PlayBackState.Stop) playbackEventargs.State = PlayBackState.Play;
+                if (state != playbackEventargs.State) {
+                    playbackEventargs.State = state;
                     PlaybackStateChanged?.Invoke(this, playbackEventargs);
-                } else if (playbackEventargs.State == PlayBackState.Play || playbackEventargs.State == PlayBackState.Stop) {
-                    playbackEventargs.State = PlayBackState.Pause;
+                } else if(cTime != currentTime) {
                     PlaybackStateChanged?.Invoke(this, playbackEventargs);
                 }
 
@@ -183,6 +183,7 @@ public class PotApi : IDisposable {
     public nint GetProgressTime() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_PROGRESS_TIME);
     public nint GetCurrentTime() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_CURRENT_TIME);
     public void SetCurrentTime(nint ms) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_CURRENT_TIME, ms);
+    public nint GetPlayStatus() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_PLAY_STATUS);
     public void PlayPause() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_STATUS, 0);
     public void Play() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_STATUS, 1);
     public void Pause() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_SET_PLAY_STATUS, 2);
