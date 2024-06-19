@@ -116,6 +116,9 @@ public class PotApi : IDisposable {
         public const nuint POT_SET_AVISYNTH_SCRIPT = 0x6003;
         public const nuint POT_SET_VAPOURSYNTH_SCRIPT = 0x6013;
         public const nuint POT_SET_SHOW_MESSAGE = 0x6040;
+
+        public const uint POT_CMD = 0x0111;
+        public const nuint POT_OPEN_FILE = 0x27AE;
     }
     public struct COPYDATASTRUCT {
         public IntPtr dwData;
@@ -210,6 +213,7 @@ public class PotApi : IDisposable {
     public nint GetVideoWidth() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_WIDTH);
     public nint GetVideoHeight() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_HEIGHT);
     public nint GetVideoFps() => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VIDEO_FPS);
+    public void ShowOpenFileDialog() => WinApi.SendMessage(Hwnd, Constants.POT_CMD, Constants.POT_OPEN_FILE);
 
     private string _response = string.Empty;
     private Task<T> Tasker<T>(Func<T> func) {
