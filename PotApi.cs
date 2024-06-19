@@ -1,3 +1,6 @@
+#if DEBUG
+using System.Diagnostics;
+#endif
 using System.Runtime.InteropServices;
 
 namespace PotApi;
@@ -99,7 +102,9 @@ public class PotApi : IDisposable {
                 _api.WndProc(ref m);
                 base.WndProc(ref m);
             } catch (Exception e) {
-                Console.WriteLine(e.Message);
+#if DEBUG
+                Debug.WriteLine(e.Message);
+#endif
             }
         }
 
@@ -111,10 +116,14 @@ public class PotApi : IDisposable {
         Hwnd = hWnd;
         _procReceiver = new PotWndProcReceiver(this);
         _procReceiver.HandleCreated += (object? sender, EventArgs e) => {
-            Console.WriteLine($"Handle Created: {e}");
+#if DEBUG
+            Debug.WriteLine($"Handle Created: {e}");
+#endif
             ProcReceiverHwnd = _procReceiver.Handle;
         };
-        Console.WriteLine(_procReceiver.Handle);
+#if DEBUG
+        Debug.WriteLine(_procReceiver.Handle);
+#endif
         ProcReceiverHwnd = _procReceiver.Handle;
     }
     private PotWndProcReceiver _procReceiver;
