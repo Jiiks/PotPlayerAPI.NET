@@ -176,6 +176,7 @@ public class PotApi : IDisposable {
     }
     private PotWndProcReceiver _procReceiver;
 
+    public nint SendCommand(uint command, nuint wParam, nint lParam = 0) => WinApi.SendMessage(Hwnd, command, wParam, lParam);
     public nint SendCommand(nuint wParam, nint lParam = 0) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, wParam, lParam);
 
     public void SetVolume(int volume) => SendCommand(Constants.POT_SET_VOLUME, volume);
@@ -215,7 +216,7 @@ public class PotApi : IDisposable {
     public nint GetVideoWidth() => SendCommand(Constants.POT_GET_VIDEO_WIDTH);
     public nint GetVideoHeight() => SendCommand(Constants.POT_GET_VIDEO_HEIGHT);
     public nint GetVideoFps() => SendCommand(Constants.POT_GET_VIDEO_FPS);
-    public void ShowOpenFileDialog() => WinApi.SendMessage(Hwnd, Constants.POT_CMD, Constants.POT_OPEN_FILE);
+    public void ShowOpenFileDialog() => SendCommand(Constants.POT_CMD, Constants.POT_OPEN_FILE);
 
     private string _response = string.Empty;
     private Task<T> Tasker<T>(Func<T> func) {
