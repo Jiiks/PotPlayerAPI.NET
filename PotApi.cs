@@ -173,7 +173,6 @@ public class PotApi : IDisposable {
         _response = string.Empty;
         WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_VAPOURSYNTH_SCRIPT, ProcReceiverHwnd);
         return Tasker(() => {
-            Thread.Sleep(2000);
             var timeOut = 1000;
             while (_response == string.Empty) {
                 timeOut -= 10;
@@ -202,7 +201,6 @@ public class PotApi : IDisposable {
         _response = string.Empty;
         WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, Constants.POT_GET_PLAYFILE_NAME, ProcReceiverHwnd);
         return Tasker(() => {
-            Thread.Sleep(2000);
             var timeOut = 1000;
             while (_response == string.Empty) {
                 timeOut -= 10;
