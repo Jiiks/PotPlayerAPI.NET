@@ -4,20 +4,23 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace PotApi;
-public class PotApi : IDisposable {
 
-    public EventHandler<PlaybackEventArgs> PlaybackStateChanged;
-    public class PlaybackEventArgs(PlayBackState state, nint time) : EventArgs {
-        public PlayBackState State { get; set; } = state;
-        public nint Time { get; set; } = time;
-    }
-    public enum PlayBackState {
-        Stop,
-        Pause,
-        Play
-    }
+public enum PlayBackState {
+    Stop,
+    Pause,
+    Play
+}
+public class PlaybackEventArgs(PlayBackState state, nint time) : EventArgs {
+    public PlayBackState State { get; set; } = state;
+    public nint Time { get; set; } = time;
+}
 
-    private CancellationTokenSource _cts;
+// Events
+public partial class PotApi {
+
+    public EventHandler<PlaybackEventArgs>? PlaybackStateChanged;
+    public EventHandler? ProcessExited;
+    private CancellationTokenSource? _cts;
 
     public void StartListener() {
         var currentTime = GetCurrentTime();
@@ -28,36 +31,48 @@ public class PotApi : IDisposable {
         Task.Factory.StartNew(async () => {
             while (true) {
                 await Task.Delay(500); // Time is not very accurate so have to have some delay.
-                if (ct.IsCancellationRequested) break;
-                var cTime = GetCurrentTime();
+                try {
+                    if (ct.IsCancellationRequested) break;
+                    if (PotProcess.HasExited) continue;
 
-                playbackEventargs.Time = cTime;
-                var state = (PlayBackState)GetPlayStatus();
+                    var cTime = GetCurrentTime();
 
-                if (state != playbackEventargs.State) {
-                    playbackEventargs.State = state;
-                    PlaybackStateChanged?.Invoke(this, playbackEventargs);
-                } else if (cTime != currentTime) {
-                    PlaybackStateChanged?.Invoke(this, playbackEventargs);
+                    playbackEventargs.Time = cTime;
+                    var state = (PlayBackState)GetPlayStatus();
+
+                    if (state != playbackEventargs.State) {
+                        playbackEventargs.State = state;
+                        PlaybackStateChanged?.Invoke(this, playbackEventargs);
+                    } else if (cTime != currentTime) {
+                        PlaybackStateChanged?.Invoke(this, playbackEventargs);
+                    }
+
+                    currentTime = cTime;
+                } catch (Exception ex) {
+                    Debug.WriteLine(ex.Message);
                 }
-
-                currentTime = cTime;
             }
         });
     }
 
     public void StopListener() {
-        _cts.Cancel();
-        _cts.Dispose();
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
+}
 
+// WinApi
+public partial class PotApi {
     public static class WinApi {
         [DllImport("user32", CharSet = CharSet.Ansi, EntryPoint = "SendMessageA")]
         public static extern nint SendMessage(nint hWnd, uint dwMsg, nuint wParam, nint lParam = 0);
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
     }
+}
 
+// Constants
+public partial class PotApi {
     public static class Constants {
         public const int WM_USER = 0x0400;
         public const int WM_COPYDATA = 0x4A;
@@ -122,13 +137,10 @@ public class PotApi : IDisposable {
         public const uint POT_CMD = 0x0111;
         public const nuint POT_OPEN_FILE = 0x27AE;
     }
-    public struct COPYDATASTRUCT {
-        public IntPtr dwData;
-        public int cbData;
-        [MarshalAs(UnmanagedType.LPStr)]
-        public string lpData;
-    }
+}
 
+// WndProc
+public partial class PotApi {
     public class PotWndProcReceiver : Form {
         private PotApi _api;
         public PotWndProcReceiver(PotApi api) { _api = api; SetFormProperties(); }
@@ -152,31 +164,48 @@ public class PotApi : IDisposable {
                 _api.WndProc(ref m);
                 base.WndProc(ref m);
             } catch (Exception e) {
-#if DEBUG
                 Debug.WriteLine(e.Message);
-#endif
             }
         }
 
     }
+}
+
+// Main
+public partial class PotApi : IDisposable {
 
     public IntPtr Hwnd { get; set; }
     public nint ProcReceiverHwnd { get; set; }
-    public PotApi(IntPtr hWnd) {
+    public Process PotProcess { get; set; }
+    public string PotLocation { get; set; }
+
+    public PotApi(Process proc) : this (proc.MainWindowHandle, proc) {}
+    public PotApi(IntPtr hWnd, Process? proc = null) {
         Hwnd = hWnd;
         _procReceiver = new PotWndProcReceiver(this);
         _procReceiver.HandleCreated += (object? sender, EventArgs e) => {
-#if DEBUG
             Debug.WriteLine($"Handle Created: {e}");
-#endif
             ProcReceiverHwnd = _procReceiver.Handle;
         };
-#if DEBUG
         Debug.WriteLine(_procReceiver.Handle);
-#endif
         ProcReceiverHwnd = _procReceiver.Handle;
+
+        if(proc == null) {
+            _ = WinApi.GetWindowThreadProcessId(hWnd, out uint pid);
+            proc = Process.GetProcessById((int)pid);
+        }
+
+        PotProcess = proc;
+        PotProcess.EnableRaisingEvents = true;
+        PotProcess.Exited += PotProcess_Exited;
+        PotLocation = PotProcess.MainModule?.FileName ?? "";
     }
-    private PotWndProcReceiver _procReceiver;
+
+    private void PotProcess_Exited(object? sender, EventArgs e) {
+        ProcessExited?.Invoke(this, EventArgs.Empty);
+    }
+
+    private PotWndProcReceiver? _procReceiver;
 
     public nint SendCommand(uint command, nuint wParam, nint lParam = 0) => WinApi.SendMessage(Hwnd, command, wParam, lParam);
     public nint SendCommand(nuint wParam, nint lParam = 0) => WinApi.SendMessage(Hwnd, Constants.POT_COMMAND, wParam, lParam);
@@ -266,6 +295,12 @@ public class PotApi : IDisposable {
         }).Result;
     }
 
+    public struct COPYDATASTRUCT {
+        public IntPtr dwData;
+        public int cbData;
+        [MarshalAs(UnmanagedType.LPStr)]
+        public string lpData;
+    }
     public void WndProc(ref Message m) {
         switch (m.Msg) {
             case Constants.WM_COPYDATA:
@@ -280,10 +315,10 @@ public class PotApi : IDisposable {
     }
 
     public void Dispose() {
-        _cts.Cancel();
-        _cts.Dispose();
-        _procReceiver.Close();
-        _procReceiver.Dispose();
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _procReceiver?.Close();
+        _procReceiver?.Dispose();
     }
 
     public enum OsdState {
@@ -292,21 +327,45 @@ public class PotApi : IDisposable {
         All
     }
 
-    public string? GetProcessPath(IntPtr hwnd) {
-        WinApi.GetWindowThreadProcessId(hwnd, out uint pid);
+    public static string? GetProcessPath(IntPtr hwnd) {
+        _ = WinApi.GetWindowThreadProcessId(hwnd, out uint pid);
         Process proc = Process.GetProcessById((int)pid);
         return proc.MainModule?.FileName;
     }
 
+    public void Restart(string filePath = "") {
+        PotProcess = Process.Start($""""{PotLocation} "{filePath}"""");
+
+        while(PotProcess.MainWindowHandle == nint.Zero) {
+            Thread.Sleep(10);
+        }
+
+        Hwnd = PotProcess.MainWindowHandle;
+        PotProcess.EnableRaisingEvents = true;
+        PotProcess.Exited += PotProcess_Exited;
+    }
+
     public void PlayFile(string filePath, bool current = true) {
-        var procPath = GetProcessPath(Hwnd);
+        var procPath = PotLocation == string.Empty ? GetProcessPath(Hwnd) : PotLocation;
         if(procPath == null) return;
-        Process.Start($""""""{procPath}" "{filePath}" {(current ? "/current" : "/new")}"""""");
+
+        if(PotProcess.HasExited) {
+            Restart(filePath);
+            return;
+        }
+
+        Process.Start($"""{procPath}" "{filePath}" {(current ? "/current" : "/new")}""");
     }
     public void AddFile(string filePath) {
-        var procPath = GetProcessPath(Hwnd);
+        var procPath = PotLocation == string.Empty ? GetProcessPath(Hwnd) : PotLocation;
         if (procPath == null) return;
-        Process.Start($""""""{procPath}" "{filePath}" /add"""""");
+
+        if (PotProcess.HasExited) {
+            Restart(filePath);
+            return;
+        }
+
+        Process.Start($"""{procPath}" "{filePath}" /add""");
     }
 
 }
