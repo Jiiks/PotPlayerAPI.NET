@@ -141,24 +141,8 @@ public partial class PotApi {
 
 // WndProc
 public partial class PotApi {
-    public class PotWndProcReceiver : Form {
-        private PotApi _api;
-        public PotWndProcReceiver(PotApi api) { _api = api; SetFormProperties(); }
-
-        private void SetFormProperties() {
-            Text = "";
-            Width = 0;
-            Height = 0;
-            ShowIcon = false;
-            ShowInTaskbar = false;
-            Opacity = 0.0;
-            Visible = false;
-            ControlBox = false;
-            MaximizeBox = false;
-            MinimizeBox = false;
-            FormBorderStyle = FormBorderStyle.None;
-        }
-
+    public class PotWndProcReceiver(PotApi api) : Control {
+        private PotApi _api = api;
         protected override void WndProc(ref Message m) {
             try {
                 _api.WndProc(ref m);
@@ -167,7 +151,6 @@ public partial class PotApi {
                 Debug.WriteLine(e.Message);
             }
         }
-
     }
 }
 
@@ -317,7 +300,7 @@ public partial class PotApi : IDisposable {
     public void Dispose() {
         _cts?.Cancel();
         _cts?.Dispose();
-        _procReceiver?.Close();
+        //_procReceiver?.Close();
         _procReceiver?.Dispose();
     }
 
