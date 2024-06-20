@@ -1,0 +1,46 @@
+html, body {
+    background: #303030;
+    color: #AEAEAE;
+}
+
+input[type="text"] {
+    background: #404040;
+    border: 1px solid #000;
+    color: #AEAEAE;
+    outline: none;
+    border-radius: 3px;
+}
+
+button {
+    background: #404040;
+    color: #AEAEAE;
+    border: 1px solid #000;
+    outline: none;
+    border-radius: 3px;
+    cursor: pointer;
+    height: 30px;
+}
+
+button:hover, button:focus {
+    background: #505050;
+    color: #FFF;
+}
+
+.flex {
+    display: flex;
+    margin-top: 10px;
+}
+
+.flex-col {
+    flex-direction: column;
+}
+
+.flex-grow {
+    flex-grow: 1;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 100px 100px 100px;
+    grid-gap: 5px;
+}

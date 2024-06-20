@@ -1,0 +1,229 @@
+﻿@page "/"
+@using System.Diagnostics
+@using Photino.Blazor
+@using PotApi
+@using System.IO
+@using System.Windows
+
+<PageTitle>Pot Remote</PageTitle>
+
+<div class="flex flex-col">
+    <div class="flex flex-col">
+        <span>Now Playing: @playingFile</span>
+    </div>
+    <div class="flex flex-col">
+        <div class="flex">
+            <span>Play File: </span>
+            <input type="text" class="flex-grow" @onclick="SelectFile" value="@selectedFile" placeholder="Click me"/>
+        </div>
+        <div class="flex">
+            <span>Add File: </span>
+            <input type="text" class="flex-grow" @onclick="AddFile" value="@addedFile" placeholder="Click me" />
+        </div>
+    </div>
+    <div class="flex flex-col flex-grow">
+        <div class="grid">
+            <button @onclick="Attach">Attach to existing</button>
+            <button @onclick="Start">Start new</button>
+            <button @onclick="PausePlay">Pause/Play</button>
+            <button @onclick="Mute">Mute</button>
+            <button @onclick="UnMute">Unmute</button>
+            <button @onclick="PlayPrevious">Previous</button>
+            <button @onclick="PlayNext">Next</button>
+        </div>
+        <div>
+            <span>Volume: @volume</span>
+            <input type="range" min="0" max="100" @bind="volume" />
+        </div>
+        <div class="flex flex-grow flex-col">
+            <span style="text-align: right; font-weight: 800; font-size: 12px;">@seekText</span>
+            <input class="flex-grow" type="range" min="0" max="@seekMax" @bind="seek" @bind:event="oninput" @onmouseup="SeekEnd" />
+        </div>
+    </div>
+</div>
+
+@code {
+    protected PotApi? potApi = null;
+    protected Process? potProcess = null;
+    protected string time = "time";
+    protected int _volume;
+    protected int _seek;
+    protected int seekMax = 0;
+    protected bool _seeking = false;
+    protected string playingFile = string.Empty;
+    protected string selectedFile = string.Empty;
+    protected string addedFile = string.Empty;
+    protected string seekText = string.Empty;
+
+    protected int volume { get => _volume; set { _volume = value; SetVolume(value); } }
+    protected int seek { get => _seek; set {
+            _seeking = true;
+            _seek = value;
+            var t = TimeSpan.FromMilliseconds(value);
+            var time2 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                            t.Hours,
+                                            t.Minutes,
+                                            t.Seconds);
+            t = TimeSpan.FromMilliseconds(seekMax);
+            var time3 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                        t.Hours,
+                                        t.Minutes,
+                                        t.Seconds);
+
+            seekText = $"{time2} / {time3}";
+
+        } }
+
+    void SeekEnd() {
+        _seeking = false;
+        Seek(_seek);
+    }
+
+
+    void Attach() {
+        var proc = Process.GetProcesses().FirstOrDefault(p => p.ProcessName == "PotPlayerMini64");
+        if(proc == null) {
+            Debug.WriteLine("Couldn't find pot player");
+            return;
+        }
+        Init(proc);
+    }
+    void Start() {
+        var proc = Process.Start("""C:\Program Files\DAUM\PotPlayer\PotPlayerMini64.exe""");
+        Init(proc);
+    }
+
+    async void Init(Process proc) {
+        while (proc.MainWindowHandle == nint.Zero) {
+            Debug.WriteLine("Waiting for player");
+            await Task.Delay(10);
+        }
+        potProcess = proc;
+        Debug.WriteLine("Initialized");
+        potApi = new PotApi(proc);
+        potApi.PlaybackStateChanged += (object sender, PlaybackEventArgs e) => {
+            if (_seeking) return;
+            Debug.WriteLine("State changed");
+            var t = TimeSpan.FromMilliseconds(e.Time);
+            time = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
+                                        t.Hours,
+                                        t.Minutes,
+                                        t.Seconds,
+                                        t.Milliseconds);
+            seekMax = (int)potApi.GetTotalTime();
+            _seek = (int)e.Time;
+
+            var time2 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                        t.Hours,
+                                        t.Minutes,
+                                        t.Seconds);
+            t = TimeSpan.FromMilliseconds(seekMax);
+            var time3 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                        t.Hours,
+                                        t.Minutes,
+                                        t.Seconds);
+
+            seekText = $"{time2} / {time3}";
+            InvokeAsync(() => StateHasChanged());
+        };
+        potApi.StartListener();
+
+        volume = (int)potApi.GetVolume();
+        playingFile = potApi.GetPlayingFileName();
+        seekMax = (int)potApi.GetTotalTime();
+        _seek = (int)potApi.GetCurrentTime();
+
+        var t = TimeSpan.FromMilliseconds(_seek);
+        time = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
+                                    t.Hours,
+                                    t.Minutes,
+                                    t.Seconds,
+                                    t.Milliseconds);
+
+        var time2 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                    t.Hours,
+                                    t.Minutes,
+                                    t.Seconds);
+        t = TimeSpan.FromMilliseconds(seekMax);
+        var time3 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                    t.Hours,
+                                    t.Minutes,
+                                    t.Seconds);
+
+        seekText = $"{time2} / {time3}";
+
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    bool Check() {
+        if (potProcess == null || potProcess.HasExited) return false;
+        return true;
+    }
+
+
+    void PausePlay() {
+        if (!Check()) return;
+        potApi.PlayPause();
+    }
+
+    void SetVolume(int volume) {
+        if (!Check()) return;
+        potApi.SetVolume(volume);
+    }
+    void Mute() {
+        if (!Check()) return;
+        potApi.Mute();
+    }
+    void UnMute() {
+        if (!Check()) return;
+        potApi.UnMute();
+    }
+    void PlayPrevious() {
+        if (!Check()) return;
+        potApi.PlayPrevious();
+        playingFile = potApi.GetPlayingFileName();
+    }
+    void PlayNext() {
+        if (!Check()) return;
+        potApi.PlayNext();
+        playingFile = potApi.GetPlayingFileName();
+    }
+    void Seek(int time) {
+        if (!Check()) return;
+        potApi.SetCurrentTime(time);
+    }
+
+    public void Invoke(Action workItem) {
+        if (Environment.CurrentManagedThreadId == Environment.CurrentManagedThreadId) {
+            Debug.WriteLine("correct thread");
+            workItem();
+        } else {
+            Debug.WriteLine("wrong thread");
+        }
+
+    }
+
+    void SelectFile() {
+        if (!Check()) return;
+        var path = selectedFile != string.Empty ? selectedFile : addedFile != string.Empty ? addedFile : playingFile != string.Empty ? playingFile : "";
+        var ofd = Apis.Window.ShowOpenFile("Choose File", path);
+        if (ofd.Length >= 1) {
+            selectedFile = ofd[0];
+            potApi.PlayFile(selectedFile);
+        }
+
+    }
+
+    void AddFile() {
+        if (!Check()) return;
+        var path = addedFile != string.Empty ? addedFile : selectedFile != string.Empty ? selectedFile : playingFile != string.Empty ? playingFile : "";
+        var ofd = Apis.Window.ShowOpenFile("Choose File", path);
+        if (ofd.Length >= 1) {
+            addedFile = ofd[0];
+            potApi.AddFile(addedFile);
+        }
+
+    }
+
+
+}
